@@ -83,7 +83,9 @@ class WeiboClient(ProxyRefreshMixin):
             data: Dict = response.json()
         except json.decoder.JSONDecodeError:
             # issue: #771 Search API returns error 432, retry multiple times + update h5 cookies
-            utils.logger.error(f"[WeiboClient.request] request {method}:{url} err code: {response.status_code} res:{response.text}")
+            utils.logger.error(
+                f"[WeiboClient.request] request {method}:{url} err code: {response.status_code} res:{response.text}"
+            )
             await self.playwright_page.goto(self._host)
             await asyncio.sleep(2)
             await self.update_cookies(browser_context=self.playwright_page.context)
@@ -91,27 +93,36 @@ class WeiboClient(ProxyRefreshMixin):
 
         ok_code = data.get("ok")
         if ok_code == 0:  # response error
-            utils.logger.error(f"[WeiboClient.request] request {method}:{url} err, res:{data}")
+            utils.logger.error(
+                f"[WeiboClient.request] request {method}:{url} err, res:{data}"
+            )
             raise DataFetchError(data.get("msg", "response error"))
         elif ok_code != 1:  # unknown error
-            utils.logger.error(f"[WeiboClient.request] request {method}:{url} err, res:{data}")
+            utils.logger.error(
+                f"[WeiboClient.request] request {method}:{url} err, res:{data}"
+            )
             raise DataFetchError(data.get("msg", "unknown error"))
         else:  # response right
             return data.get("data", {})
 
-    async def get(self, uri: str, params=None, headers=None, **kwargs) -> Union[Response, Dict]:
+    async def get(
+        self, uri: str, params=None, headers=None, **kwargs
+    ) -> Union[Response, Dict]:
         final_uri = uri
         if isinstance(params, dict):
-            final_uri = (f"{uri}?"
-                         f"{urlencode(params)}")
+            final_uri = f"{uri}?" f"{urlencode(params)}"
 
         if headers is None:
             headers = self.headers
-        return await self.request(method="GET", url=f"{self._host}{final_uri}", headers=headers, **kwargs)
+        return await self.request(
+            method="GET", url=f"{self._host}{final_uri}", headers=headers, **kwargs
+        )
 
     async def post(self, uri: str, data: dict) -> Dict:
-        json_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
-        return await self.request(method="POST", url=f"{self._host}{uri}", data=json_str, headers=self.headers)
+        json_str = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+        return await self.request(
+            method="POST", url=f"{self._host}{uri}", data=json_str, headers=self.headers
+        )
 
     async def pong(self) -> bool:
         """get a note to check if login state is ok"""
@@ -119,17 +130,25 @@ class WeiboClient(ProxyRefreshMixin):
         ping_flag = False
         try:
             uri = "/api/config"
-            resp_data: Dict = await self.request(method="GET", url=f"{self._host}{uri}", headers=self.headers)
+            resp_data: Dict = await self.request(
+                method="GET", url=f"{self._host}{uri}", headers=self.headers
+            )
             if resp_data.get("login"):
                 ping_flag = True
             else:
-                utils.logger.error(f"[WeiboClient.pong] cookie may be invalid and again login...")
+                utils.logger.error(
+                    f"[WeiboClient.pong] cookie may be invalid and again login..."
+                )
         except Exception as e:
-            utils.logger.error(f"[WeiboClient.pong] Pong weibo failed: {e}, and try to login again...")
+            utils.logger.error(
+                f"[WeiboClient.pong] Pong weibo failed: {e}, and try to login again..."
+            )
             ping_flag = False
         return ping_flag
 
-    async def update_cookies(self, browser_context: BrowserContext, urls: Optional[List[str]] = None):
+    async def update_cookies(
+        self, browser_context: BrowserContext, urls: Optional[List[str]] = None
+    ):
         """
         Update cookies from browser context
         :param browser_context: Browser context
@@ -138,7 +157,9 @@ class WeiboClient(ProxyRefreshMixin):
         """
         if urls:
             cookies = await browser_context.cookies(urls=urls)
-            utils.logger.info(f"[WeiboClient.update_cookies] Updating cookies for specific URLs: {urls}")
+            utils.logger.info(
+                f"[WeiboClient.update_cookies] Updating cookies for specific URLs: {urls}"
+            )
         else:
             cookies = await browser_context.cookies()
             utils.logger.info("[WeiboClient.update_cookies] Updating all cookies")
@@ -146,7 +167,9 @@ class WeiboClient(ProxyRefreshMixin):
         cookie_str, cookie_dict = utils.convert_cookies(cookies)
         self.headers["Cookie"] = cookie_str
         self.cookie_dict = cookie_dict
-        utils.logger.info(f"[WeiboClient.update_cookies] Cookie updated successfully, total: {len(cookie_dict)} cookies")
+        utils.logger.info(
+            f"[WeiboClient.update_cookies] Cookie updated successfully, total: {len(cookie_dict)} cookies"
+        )
 
     async def get_note_by_keyword(
         self,
@@ -170,7 +193,9 @@ class WeiboClient(ProxyRefreshMixin):
         }
         return await self.get(uri, params)
 
-    async def get_note_comments(self, mid_id: str, max_id: int, max_id_type: int = 0) -> Dict:
+    async def get_note_comments(
+        self, mid_id: str, max_id: int, max_id_type: int = 0
+    ) -> Dict:
         """get notes comments
         :param mid_id: Weibo ID
         :param max_id: Pagination parameter ID
@@ -217,12 +242,14 @@ class WeiboClient(ProxyRefreshMixin):
             comment_list: List[Dict] = comments_res.get("data", [])
             is_end = max_id == 0
             if len(result) + len(comment_list) > max_count:
-                comment_list = comment_list[:max_count - len(result)]
+                comment_list = comment_list[: max_count - len(result)]
             if callback:  # If callback function exists, execute it
                 await callback(note_id, comment_list)
             await asyncio.sleep(crawl_interval)
             result.extend(comment_list)
-            sub_comment_result = await self.get_comments_all_sub_comments(note_id, comment_list, callback)
+            sub_comment_result = await self.get_comments_all_sub_comments(
+                note_id, comment_list, callback
+            )
             result.extend(sub_comment_result)
         return result
 
@@ -243,7 +270,9 @@ class WeiboClient(ProxyRefreshMixin):
 
         """
         if not config.ENABLE_GET_SUB_COMMENTS:
-            utils.logger.info(f"[WeiboClient.get_comments_all_sub_comments] Crawling sub_comment mode is not enabled")
+            utils.logger.info(
+                f"[WeiboClient.get_comments_all_sub_comments] Crawling sub_comment mode is not enabled"
+            )
             return []
 
         res_sub_comments = []
@@ -262,10 +291,14 @@ class WeiboClient(ProxyRefreshMixin):
         """
         url = f"{self._host}/detail/{note_id}"
         async with httpx.AsyncClient(proxy=self.proxy) as client:
-            response = await client.request("GET", url, timeout=self.timeout, headers=self.headers)
+            response = await client.request(
+                "GET", url, timeout=self.timeout, headers=self.headers
+            )
             if response.status_code != 200:
                 raise DataFetchError(f"get weibo detail err: {response.text}")
-            match = re.search(r'var \$render_data = (\[.*?\])\[0\]', response.text, re.DOTALL)
+            match = re.search(
+                r"var \$render_data = (\[.*?\])\[0\]", response.text, re.DOTALL
+            )
             if match:
                 render_data_json = match.group(1)
                 render_data_dict = json.loads(render_data_json)
@@ -273,7 +306,9 @@ class WeiboClient(ProxyRefreshMixin):
                 note_item = {"mblog": note_detail}
                 return note_item
             else:
-                utils.logger.info(f"[WeiboClient.get_note_info_by_id] $render_data value not found")
+                utils.logger.info(
+                    f"[WeiboClient.get_note_info_by_id] $render_data value not found"
+                )
                 return dict()
 
     async def get_note_image(self, image_url: str) -> bytes:
@@ -289,19 +324,24 @@ class WeiboClient(ProxyRefreshMixin):
                 image_url += sub_url[i] + "/"
         # Weibo image hosting has anti-hotlinking, so proxy access is needed
         # Since Weibo images are accessed through i1.wp.com, we need to concatenate the URL
-        final_uri = (f"{self._image_agent_host}"
-                     f"{image_url}")
+        final_uri = f"{self._image_agent_host}" f"{image_url}"
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             try:
                 response = await client.request("GET", final_uri, timeout=self.timeout)
                 response.raise_for_status()
                 if not response.reason_phrase == "OK":
-                    utils.logger.error(f"[WeiboClient.get_note_image] request {final_uri} err, res:{response.text}")
+                    utils.logger.error(
+                        f"[WeiboClient.get_note_image] request {final_uri} err, res:{response.text}"
+                    )
                     return None
                 else:
                     return response.content
-            except httpx.HTTPError as exc:  # some wrong when call httpx.request method, such as connection error, client error, server error or response status code is not 2xx
-                utils.logger.error(f"[DouYinClient.get_aweme_media] {exc.__class__.__name__} for {exc.request.url} - {exc}")    # Keep original exception type name for developer debugging
+            except (
+                httpx.HTTPError
+            ) as exc:  # some wrong when call httpx.request method, such as connection error, client error, server error or response status code is not 2xx
+                utils.logger.error(
+                    f"[DouYinClient.get_aweme_media] {exc.__class__.__name__} for {exc.request.url} - {exc}"
+                )  # Keep original exception type name for developer debugging
                 return None
 
     async def get_creator_container_info(self, creator_id: str) -> Dict:
@@ -320,7 +360,10 @@ class WeiboClient(ProxyRefreshMixin):
         if not m_weibocn_params:
             raise DataFetchError("get containerid failed")
         m_weibocn_params_dict = parse_qs(unquote(m_weibocn_params))
-        return {"fid_container_id": m_weibocn_params_dict.get("fid", [""])[0], "lfid_container_id": m_weibocn_params_dict.get("lfid", [""])[0]}
+        return {
+            "fid_container_id": m_weibocn_params_dict.get("fid", [""])[0],
+            "lfid_container_id": m_weibocn_params_dict.get("lfid", [""])[0],
+        }
 
     async def get_creator_info_by_id(self, creator_id: str) -> Dict:
         """
@@ -337,7 +380,7 @@ class WeiboClient(ProxyRefreshMixin):
             "jumpfrom": "weibocom",
             "type": "uid",
             "value": creator_id,
-            "containerid":containerid,
+            "containerid": containerid,
         }
         user_res = await self.get(uri, params)
         return user_res
@@ -391,22 +434,49 @@ class WeiboClient(ProxyRefreshMixin):
         since_id = ""
         crawler_total_count = 0
         while notes_has_more:
-            notes_res = await self.get_notes_by_creator(creator_id, container_id, since_id)
+            notes_res = await self.get_notes_by_creator(
+                creator_id, container_id, since_id
+            )
             if not notes_res:
-                utils.logger.error(f"[WeiboClient.get_notes_by_creator] The current creator may have been banned by Weibo, so they cannot access the data.")
+                utils.logger.error(
+                    f"[WeiboClient.get_notes_by_creator] The current creator may have been banned by Weibo, so they cannot access the data."
+                )
                 break
             since_id = notes_res.get("cardlistInfo", {}).get("since_id", "0")
             if "cards" not in notes_res:
-                utils.logger.info(f"[WeiboClient.get_all_notes_by_creator] No 'notes' key found in response: {notes_res}")
+                utils.logger.info(
+                    f"[WeiboClient.get_all_notes_by_creator] No 'notes' key found in response: {notes_res}"
+                )
                 break
 
             notes = notes_res["cards"]
-            utils.logger.info(f"[WeiboClient.get_all_notes_by_creator] got user_id:{creator_id} notes len : {len(notes)}")
+            utils.logger.info(
+                f"[WeiboClient.get_all_notes_by_creator] got user_id:{creator_id} notes len : {len(notes)}"
+            )
             notes = [note for note in notes if note.get("card_type") == 9]
             if callback:
                 await callback(notes)
             await asyncio.sleep(crawl_interval)
             result.extend(notes)
             crawler_total_count += 10
-            notes_has_more = notes_res.get("cardlistInfo", {}).get("total", 0) > crawler_total_count
+            notes_has_more = (
+                notes_res.get("cardlistInfo", {}).get("total", 0) > crawler_total_count
+            )
         return result
+
+    async def get_hot_search_list(self) -> list:
+        """
+        [新增] 请求微博热搜接口
+        """
+        # 微博网页版热搜接口示例
+        url = "https://weibo.com/ajax/statuses/hot_band"
+
+        try:
+            response = await self.request("GET", url)
+            if response and "data" in response and "band_list" in response["data"]:
+                return response["data"]["band_list"]
+            else:
+                return []
+        except Exception as e:
+            utils.logger.error(f"[WeiboClient] 请求热搜 API 失败: {e}")
+            return []
