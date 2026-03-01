@@ -615,8 +615,8 @@ class XiaoHongShuCrawler(AbstractCrawler):
             )
             keywords_list = ["热门"]  # Default hot keyword
 
-        # Calculate timestamp for 3 days ago
-        three_days_ago = int(time.time()) - (3 * 24 * 60 * 60)
+        # Calculate timestamp for N days ago based on config.DAYS
+        days_ago = int(time.time()) - (config.DAYS * 24 * 60 * 60)
 
         # List to store all note details for sorting
         all_note_details = []
@@ -655,7 +655,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
                         keyword=keyword,
                         search_id=search_id,
                         page=page,
-                        sort=SearchSortType.GENERAL,
+                        sort=SearchSortType.MOST_POPULAR,
                     )
 
                     if not notes_res or not notes_res.get("has_more", False):
@@ -679,11 +679,11 @@ class XiaoHongShuCrawler(AbstractCrawler):
 
                     for note_detail in note_details:
                         if note_detail:
-                            # Check if note is from the last 3 days
+                            # Check if note is from the last N days
                             note_time = note_detail.get("time") or note_detail.get(
                                 "last_update_time"
                             )
-                            if note_time and note_time >= three_days_ago:
+                            if note_time and note_time >= days_ago:
                                 # Calculate interaction score
                                 liked_count = int(
                                     note_detail.get("liked_count", 0) or 0
@@ -744,7 +744,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
 
         # Log top notes
         utils.logger.info(
-            f"[XiaoHongShuCrawler.get_hot_content] Found {len(all_note_details)} notes from last 3 days"
+            f"[XiaoHongShuCrawler.get_hot_content] Found {len(all_note_details)} notes from last {config.DAYS} days"
         )
         utils.logger.info(
             f"[XiaoHongShuCrawler.get_hot_content] Top {len(top_notes)} hottest notes:"

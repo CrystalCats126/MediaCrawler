@@ -267,6 +267,14 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
                 rich_help_panel="Performance Configuration",
             ),
         ] = config.MAX_CONCURRENCY_NUM,
+        days: Annotated[
+            int,
+            typer.Option(
+                "--days",
+                help="Time range for hot content filtering (days), default is 30 days",
+                rich_help_panel="Basic Configuration",
+            ),
+        ] = config.DAYS,
         save_data_path: Annotated[
             str,
             typer.Option(
@@ -335,6 +343,7 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
         config.COOKIES = cookies
         config.CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES = max_comments_count_singlenotes
         config.MAX_CONCURRENCY_NUM = max_concurrency_num
+        config.DAYS = days
         config.SAVE_DATA_PATH = save_data_path
         config.ENABLE_IP_PROXY = enable_ip_proxy_value
         config.IP_PROXY_POOL_COUNT = ip_proxy_pool_count

@@ -19,12 +19,12 @@
 
 # Basic configuration
 PLATFORM = "xhs"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
-KEYWORDS = "编程副业,编程兼职"  # Keyword search configuration, separated by English commas
+KEYWORDS = (
+    "编程副业,编程兼职"  # Keyword search configuration, separated by English commas
+)
 LOGIN_TYPE = "qrcode"  # qrcode or phone or cookie
 COOKIES = ""
-CRAWLER_TYPE = (
-    "search"  # Crawling type, search (keyword search) | detail (post details) | creator (creator homepage data)
-)
+CRAWLER_TYPE = "search"  # Crawling type, search (keyword search) | detail (post details) | creator (creator homepage data)
 # Whether to enable IP proxy
 ENABLE_IP_PROXY = False
 
@@ -84,6 +84,9 @@ START_PAGE = 1
 
 # Control the number of crawled videos/posts
 CRAWLER_MAX_NOTES_COUNT = 15
+
+# Time range for hot content filtering (days)
+DAYS = 30
 
 # Controlling the number of concurrent crawlers
 MAX_CONCURRENCY_NUM = 1
